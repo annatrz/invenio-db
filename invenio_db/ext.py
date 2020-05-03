@@ -5,7 +5,6 @@
 #
 # Invenio is free software; you can redistribute it and/or modify it
 # under the terms of the MIT License; see LICENSE file for more details.
-
 """Database management for Invenio."""
 
 from __future__ import absolute_import, print_function
@@ -16,6 +15,7 @@ import pkg_resources
 import sqlalchemy as sa
 from flask_alembic import Alembic
 from sqlalchemy_utils.functions import get_class_by_table
+from werkzeug.utils import import_string
 
 from .cli import db as db_cmd
 from .shared import db
@@ -24,7 +24,6 @@ from .utils import versioning_models_registered
 
 class InvenioDB(object):
     """Invenio database extension."""
-
     def __init__(self, app=None, **kwargs):
         """Extension initialization."""
         self.alembic = Alembic(run_mkdir=False, command_name='alembic')
@@ -124,6 +123,9 @@ class InvenioDB(object):
             user_cls = app.config.get('DB_VERSIONING_USER_MODEL')
 
         plugins = [FlaskPlugin()] if user_cls else []
+
+        extra_plugins = app.config.get('DB_EXTRA_PLUGINS', [])
+        plugins.extend(import_string(obj)() for obj in extra_plugins)
 
         # Call make_versioned() before your models are defined.
         self.versioning_manager = versioning_manager or default_vm
